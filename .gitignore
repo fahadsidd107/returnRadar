@@ -1,0 +1,15 @@
+node_modules/
+target/
+.expo/
+dist/
+.env
+*.log
+.DS_Store
+
+.local/
+
+**/.terraform/
+*.tfstate
+*.tfstate.*
+playwright-report/
+test-results/

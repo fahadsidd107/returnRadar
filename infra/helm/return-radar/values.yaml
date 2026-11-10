@@ -1,0 +1,18 @@
+image:
+  repository: return-radar
+  tag: local
+  pullPolicy: IfNotPresent
+replicas: 2
+secretName: return-radar-runtime
+api:
+  bind: 0.0.0.0:4000
+  corsOrigins: https://account.example.invalid
+workers: [mail, outbox, consume, scheduler, push, objects]
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: "1", memory: 512Mi}
+ingress:
+  enabled: false
+  className: nginx
+  host: api.example.invalid
+  tlsSecretName: return-radar-tls

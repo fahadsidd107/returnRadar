@@ -1,0 +1,6 @@
+apiVersion: v2
+name: return-radar
+description: Modular Return Radar API and workers, external PostgreSQL/Kafka/S3/SMTP
+version: 0.1.0
+appVersion: 0.1.0
+type: application

@@ -1,0 +1,7 @@
+**/target
+**/node_modules
+**/.expo
+**/dist
+.local
+.git
+.env

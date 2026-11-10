@@ -1,0 +1,5 @@
+appId: ${APP_ID}
+---
+- launchApp
+- assertVisible: "Your returns, under control."
+# Device execution and real account lifecycle flow remain pending.

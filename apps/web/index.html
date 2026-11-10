@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Return Radar · Account</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="#account"
+        ><span class="mark"
+          ><img src="assets/symbol.svg" alt="" width="36" height="36" /></span
+        >Return Radar</a
+      >
+      <nav aria-label="Main">
+        <a href="#account">Account</a><a href="#support">Support</a
+        ><a href="#privacy">Privacy</a>
+      </nav>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="eyebrow">YOUR PURCHASES. YOUR DECISIONS. YOUR DATA.</p>
+        <h1>A little organisation.<br />A clear next step.</h1>
+        <p class="lead">
+          Return Radar helps you keep purchase deadlines, parcels and refund
+          follow-ups under control. Manage your account here, and take care of
+          your returns in the mobile app.
+        </p>
+        <div class="release">
+          <span aria-hidden="true">○</span> Development preview · No public
+          store release
+        </div>
+      </section>
+      <section id="account" class="panel" aria-labelledby="account-title">
+        <div class="section-heading">
+          <p class="eyebrow">ACCOUNT TOOLS</p>
+          <h2 id="account-title">Keep control of your data.</h2>
+          <p>
+            Sign in to export your records or permanently delete your account.
+          </p>
+        </div>
+        <div id="signed-out">
+          <form id="login-form">
+            <label for="api-url">API endpoint</label
+            ><input
+              id="api-url"
+              type="url"
+              value="http://localhost:4000/graphql"
+              required
+            />
+            <p class="hint">
+              Local development default. Use your operator’s HTTPS endpoint in
+              production.
+            </p>
+            <label for="email">Email address</label
+            ><input
+              id="email"
+              type="email"
+              autocomplete="username"
+              required
+            /><label for="password">Password</label
+            ><input
+              id="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            /><button id="login" type="submit">
+              Sign in <span aria-hidden="true">→</span>
+            </button>
+            <p class="hint">
+              Create and verify your account in the mobile app first. This
+              portal keeps credentials in memory only.
+            </p>
+          </form>
+        </div>
+        <div id="signed-in" hidden>
+          <p class="session-label">✓ Signed in · This browser session only</p>
+          <div class="tool">
+            <div>
+              <h3>Export account data</h3>
+              <p>Download a JSON copy of the records held by this server.</p>
+            </div>
+            <button id="export">Download my data</button>
+          </div>
+          <div class="tool">
+            <div>
+              <h3>Sign out</h3>
+              <p>Revoke this session and clear it from this browser.</p>
+            </div>
+            <button id="logout" class="secondary">Sign out</button>
+          </div>
+          <details class="danger">
+            <summary>Delete your account</summary>
+            <p>
+              This permanently deletes your account, sessions, purchases,
+              returns and refund records on this server. Backup retention is
+              controlled by your server operator. This cannot be undone.
+            </p>
+            <label class="check"
+              ><input id="delete-check" type="checkbox" /> I understand this
+              permanently deletes my account.</label
+            ><button id="delete" class="destructive" disabled>
+              Delete account permanently
+            </button>
+          </details>
+        </div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </section>
+      <section id="support" class="information">
+        <p class="eyebrow">A HELPING HAND</p>
+        <h2>Support</h2>
+        <p>
+          For a local development setup, follow the repository’s development
+          guide and share reproducible errors without passwords, session tokens,
+          receipts or personal purchase contents.
+        </p>
+        <p class="pending">
+          A public support contact has not been configured. This is a
+          development preview and is not ready for public account support.
+        </p>
+      </section>
+      <section id="privacy" class="information">
+        <p class="eyebrow">PLAINLY SPEAKING</p>
+        <h2>Privacy &amp; account deletion</h2>
+        <p>
+          This development build stores account identifiers, password hashes,
+          purchase and return records, refund transactions, activity history and
+          sessions on its configured server. The mobile app uses platform secure
+          storage for credentials and local SQLite for purchase drafts.
+        </p>
+        <p>
+          The account export above retrieves the data provided by the server’s
+          export operation. Account deletion is available above and inside the
+          mobile app. Deletion removes active database records; server backup
+          retention and any future object-storage retention must be documented
+          by the operator before release.
+        </p>
+        <p class="pending">
+          Draft disclosure only. The operator’s legal identity, contact,
+          retention periods, production subprocessors and jurisdiction-specific
+          terms remain unconfigured. This page is not an approved public privacy
+          policy or legal terms.
+        </p>
+      </section>
+      <section id="terms" class="information">
+        <h2>Terms</h2>
+        <p>
+          Return deadlines and receipt of funds are confirmed by the user. This
+          build does not integrate with banks, retailers or live carrier
+          tracking, and does not guarantee return eligibility, delivery or
+          refunds.
+        </p>
+        <p class="pending">
+          Public legal terms require operator review before release.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <a class="brand" href="#account">Return Radar</a>
+      <p>Get your returns out of the house in one organised trip.</p>
+      <span>Working name · Development build</span>
+    </footer>
+    <script src="app.js"></script>
+  </body>
+</html>

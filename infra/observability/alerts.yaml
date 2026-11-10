@@ -1,0 +1,18 @@
+groups:
+  - name: radar
+    rules:
+      - alert: RadarApiUnavailable
+        expr: up{job="return-radar-api"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "API scrape failed; inspect health/readiness and database"}
+      - alert: RadarOutboxStalled
+        expr: radar_outbox_oldest_age_seconds > 300
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Outbox events waiting over five minutes; inspect Kafka and workers"}
+      - alert: RadarGraphqlErrors
+        expr: sum(rate(radar_graphql_requests_total{outcome="error"}[5m])) / clamp_min(sum(rate(radar_graphql_requests_total[5m])), 0.001) > 0.1
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "GraphQL error ratio above ten percent"}

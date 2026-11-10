@@ -1,0 +1,15 @@
+# Configure repository URL and revision before enabling. No automatic sync/publication.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: return-radar-staging
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://example.invalid/REPLACE_WITH_AUTHORISED_REPOSITORY.git
+    targetRevision: REPLACE_WITH_REVIEWED_COMMIT
+    path: infra/helm/return-radar
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: return-radar-staging

@@ -1,0 +1,169 @@
+type Activity {
+	kind: String!
+	occurredAt: String!
+}
+
+type Auth {
+	token: String!
+	refreshToken: String!
+	expiresAt: String!
+}
+
+type Document {
+	id: String!
+	purpose: String!
+	contentType: String!
+	status: String!
+	byteLength: String!
+}
+
+type Mutation {
+	updateNotificationPreferences(timezone: String!, pushEnabled: Boolean!, quietStart: Int!, quietEnd: Int!): Boolean!
+	registerDeviceToken(token: String!): Boolean!
+	scheduleReminder(purchaseId: String, returnId: String, runId: String, kind: String!, dueAt: String!): String!
+	markNotificationRead(notificationId: String!): Boolean!
+	beginDocumentUpload(purchaseId: String, returnId: String, purpose: String!, contentType: String!, byteLength: String!): Upload!
+	finishDocumentUpload(documentId: String!): Boolean!
+	deleteDocument(documentId: String!): Boolean!
+	createOrder(merchant: String!, currency: String!, deadline: String!, notes: String, items: [OrderItemInput!]!): String!
+	startPartialReturn(purchaseId: String!, items: [ReturnItemInput!]!, category: Int!, method: Int!): String!
+	recordFee(returnId: String!, amountMinor: String!): Boolean!
+	updatePurchase(purchaseId: String!, version: Int!, merchant: String!, item: String!, deadline: String!, notes: String!): Boolean!
+	deletePurchase(purchaseId: String!, version: Int!): Boolean!
+	assignParcelToRun(runId: String!, returnId: String!, stopName: String!, position: Int!): Boolean!
+	completeRunStop(runId: String!, returnId: String!, evidenceNote: String!): Boolean!
+	register(email: String!, password: String!): Boolean!
+	signIn(email: String!, password: String!): Auth!
+	verifyEmail(token: String!): Boolean!
+	requestPasswordReset(email: String!): Boolean!
+	resetPassword(token: String!, password: String!): Boolean!
+	refreshSession(refreshToken: String!): Auth!
+	logout: Boolean!
+	deleteAccount: Boolean!
+	createPurchase(merchant: String!, item: String!, amountMinor: String!, currency: String!, deadline: String!, notes: String): String!
+	archivePurchase(purchaseId: String!, version: Int!): Boolean!
+	startReturn(purchaseId: String!, category: Int!, method: Int!): String!
+	advanceReturn(returnId: String!, nextState: String!, label: String, carrier: String): Boolean!
+	recordRefund(returnId: String!, amountMinor: String!): Boolean!
+	createReturnRun(name: String!, plannedAt: String!): String!
+}
+
+type Notification {
+	id: String!
+	title: String!
+	body: String!
+	deepLink: String!
+	createdAt: String!
+	read: Boolean!
+}
+
+type OrderItem {
+	id: String!
+	name: String!
+	unitAmountMinor: String!
+	quantity: Int!
+	returnedQuantity: Int!
+}
+
+input OrderItemInput {
+	name: String!
+	unitAmountMinor: String!
+	quantity: Int!
+}
+
+type Preferences {
+	timezone: String!
+	pushEnabled: Boolean!
+	quietStart: Int!
+	quietEnd: Int!
+}
+
+type Purchase {
+	id: String!
+	merchant: String!
+	item: String!
+	amountMinor: String!
+	currency: String!
+	deadline: String!
+	notes: String!
+	version: Int!
+}
+
+type Query {
+	notifications: [Notification!]!
+	notificationPreferences: Preferences!
+	documents(purchaseId: String, returnId: String): [Document!]!
+	documentDownloadUrl(documentId: String!): String!
+	purchaseItems(purchaseId: String!): [OrderItem!]!
+	timeline(aggregateId: String!): [Activity!]!
+	runParcels(runId: String!): [RunParcel!]!
+	exportData: String!
+	purchases(offset: Int, search: String): [Purchase!]!
+	returns: [Return!]!
+	runs: [Run!]!
+	similarPastReturns(purchaseId: String!, category: Int!, method: Int!): [Similar!]!
+}
+
+type Return {
+	id: String!
+	purchaseId: String!
+	item: String!
+	merchant: String!
+	currency: String!
+	state: String!
+	expectedMinor: String!
+	receivedMinor: String!
+	remainingMinor: String!
+	label: String!
+	carrier: String!
+}
+
+input ReturnItemInput {
+	itemId: String!
+	quantity: Int!
+}
+
+type Run {
+	id: String!
+	name: String!
+	plannedAt: String!
+}
+
+type RunParcel {
+	returnId: String!
+	item: String!
+	label: String!
+	carrier: String!
+	state: String!
+	stopName: String!
+	position: Int!
+	handedOverAt: String
+	evidenceNote: String!
+}
+
+type Similar {
+	returnId: String!
+	item: String!
+	distance: Float!
+	explanation: String!
+}
+
+type Upload {
+	documentId: String!
+	url: String!
+	contentType: String!
+	byteLength: String!
+}
+
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+schema {
+	query: Query
+	mutation: Mutation
+}

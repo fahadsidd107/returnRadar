@@ -1,0 +1,17 @@
+query Dashboard {
+  purchases { id merchant item amountMinor currency deadline notes version }
+  returns { id purchaseId item merchant currency state expectedMinor receivedMinor remainingMinor label carrier }
+  runs { id name plannedAt }
+}
+mutation SignIn($email: String!, $password: String!) {
+  signIn(email: $email, password: $password) { token refreshToken expiresAt }
+}
+mutation CreatePurchase($merchant: String!, $item: String!, $amountMinor: String!, $currency: String!, $deadline: String!, $notes: String) {
+  createPurchase(merchant: $merchant, item: $item, amountMinor: $amountMinor, currency: $currency, deadline: $deadline, notes: $notes)
+}
+query RunParcels($runId: String!) {
+  runParcels(runId: $runId) { returnId item label carrier state stopName position handedOverAt evidenceNote }
+}
+query SimilarPastReturns($purchaseId: String!, $category: Int!, $method: Int!) {
+  similarPastReturns(purchaseId: $purchaseId, category: $category, method: $method) { returnId item distance explanation }
+}

@@ -1,0 +1,8 @@
+route:
+  receiver: local-only
+  group_by: [alertname]
+  group_wait: 30s
+  repeat_interval: 4h
+receivers:
+  - name: local-only
+# No external receiver configured; UI only. Add approved operational destination before production.

@@ -1,0 +1,9 @@
+ALTER TABLE users ADD COLUMN timezone text NOT NULL DEFAULT 'Europe/Berlin';
+ALTER TABLE users ADD COLUMN push_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN quiet_start integer NOT NULL DEFAULT 22 CHECK(quiet_start BETWEEN 0 AND 23);
+ALTER TABLE users ADD COLUMN quiet_end integer NOT NULL DEFAULT 8 CHECK(quiet_end BETWEEN 0 AND 23);
+CREATE TABLE device_tokens (token text PRIMARY KEY, user_id uuid NOT NULL REFERENCES users ON DELETE CASCADE, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE reminders (id uuid PRIMARY KEY, user_id uuid NOT NULL REFERENCES users ON DELETE CASCADE, purchase_id uuid REFERENCES purchases ON DELETE CASCADE, return_id uuid REFERENCES returns ON DELETE CASCADE, run_id uuid REFERENCES runs ON DELETE CASCADE, purchase_version integer, kind text NOT NULL CHECK(kind IN ('decision','shipping','run','refund')), due_at timestamptz NOT NULL, state text NOT NULL DEFAULT 'scheduled' CHECK(state IN ('scheduled','queued','cancelled')), created_at timestamptz NOT NULL DEFAULT now(),CHECK((purchase_id IS NOT NULL)::integer+(return_id IS NOT NULL)::integer+(run_id IS NOT NULL)::integer=1));
+CREATE INDEX reminders_due ON reminders(due_at) WHERE state='scheduled';
+CREATE TABLE notifications (id uuid PRIMARY KEY, user_id uuid NOT NULL REFERENCES users ON DELETE CASCADE, reminder_id uuid NOT NULL UNIQUE REFERENCES reminders ON DELETE CASCADE, title text NOT NULL, body text NOT NULL, deep_link text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), read_at timestamptz);
+CREATE TABLE push_attempts (notification_id uuid NOT NULL REFERENCES notifications ON DELETE CASCADE, token text NOT NULL REFERENCES device_tokens ON DELETE CASCADE, attempts integer NOT NULL DEFAULT 0, next_attempt_at timestamptz NOT NULL DEFAULT now(), provider_ticket text, status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','failed')), PRIMARY KEY(notification_id,token));
