@@ -181,11 +181,11 @@ impl Query {
         run_id: String,
     ) -> async_graphql::Result<Vec<RunParcel>> {
         let uid = user(ctx)?;
-        Ok(sqlx::query("SELECT a.*,p.item,r.label,r.carrier,r.state FROM run_assignments a JOIN runs run ON run.id=a.run_id JOIN returns r ON r.id=a.return_id JOIN purchases p ON p.id=r.purchase_id WHERE a.run_id=$1 AND run.user_id=$2 AND r.user_id=$2 ORDER BY a.position,a.return_id").bind(id(&run_id)?).bind(uid).fetch_all(ctx.data_unchecked::<PgPool>()).await.map_err(db_error)?.into_iter().map(|r|RunParcel{return_id:r.get::<Uuid,_>("return_id").to_string(),item:r.get("item"),label:r.get("label"),carrier:r.get("carrier"),state:r.get("state"),stop_name:r.get("stop_name"),position:r.get("position"),handed_over_at:r.get::<Option<DateTime<Utc>>,_>("handed_over_at").map(|d|d.to_rfc3339()),evidence_note:r.get("evidence_note")}).collect())
+        Ok(sqlx::query("SELECT a.*,COALESCE((SELECT string_agg(i.name||CASE WHEN ri.quantity>1 THEN ' × '||ri.quantity::text ELSE '' END, ', ' ORDER BY i.name) FROM return_items ri JOIN purchase_items i ON i.id=ri.item_id WHERE ri.return_id=r.id),p.item) item,r.label,r.carrier,r.state FROM run_assignments a JOIN runs run ON run.id=a.run_id JOIN returns r ON r.id=a.return_id JOIN purchases p ON p.id=r.purchase_id WHERE a.run_id=$1 AND run.user_id=$2 AND r.user_id=$2 ORDER BY a.position,a.return_id").bind(id(&run_id)?).bind(uid).fetch_all(ctx.data_unchecked::<PgPool>()).await.map_err(db_error)?.into_iter().map(|r|RunParcel{return_id:r.get::<Uuid,_>("return_id").to_string(),item:r.get("item"),label:r.get("label"),carrier:r.get("carrier"),state:r.get("state"),stop_name:r.get("stop_name"),position:r.get("position"),handed_over_at:r.get::<Option<DateTime<Utc>>,_>("handed_over_at").map(|d|d.to_rfc3339()),evidence_note:r.get("evidence_note")}).collect())
     }
     async fn export_data(&self, ctx: &Context<'_>) -> async_graphql::Result<String> {
         let uid = user(ctx)?;
-        let r=sqlx::query_scalar::<_,serde_json::Value>("SELECT jsonb_build_object('schemaVersion',1,'exportedAt',now(),'purchases',COALESCE((SELECT jsonb_agg(to_jsonb(p)-'user_id') FROM purchases p WHERE user_id=$1),'[]'::jsonb),'returns',COALESCE((SELECT jsonb_agg(to_jsonb(r)-'user_id'-'features') FROM returns r WHERE user_id=$1),'[]'::jsonb),'refunds',COALESCE((SELECT jsonb_agg(to_jsonb(f)) FROM refunds f JOIN returns r ON r.id=f.return_id WHERE r.user_id=$1),'[]'::jsonb),'runs',COALESCE((SELECT jsonb_agg(to_jsonb(run)-'user_id') FROM runs run WHERE user_id=$1),'[]'::jsonb),'assignments',COALESCE((SELECT jsonb_agg(to_jsonb(a)) FROM run_assignments a JOIN runs r ON r.id=a.run_id WHERE r.user_id=$1),'[]'::jsonb),'activity',COALESCE((SELECT jsonb_agg(to_jsonb(a)-'user_id') FROM activity a WHERE user_id=$1),'[]'::jsonb))").bind(uid).fetch_one(ctx.data_unchecked::<PgPool>()).await.map_err(db_error)?;
+        let r=sqlx::query_scalar::<_,serde_json::Value>("SELECT jsonb_build_object('schemaVersion',1,'exportedAt',now(),'purchases',COALESCE((SELECT jsonb_agg(to_jsonb(p)-'user_id') FROM purchases p WHERE user_id=$1),'[]'::jsonb),'returns',COALESCE((SELECT jsonb_agg(to_jsonb(r)-'user_id'-'features') FROM returns r WHERE user_id=$1),'[]'::jsonb),'refunds',COALESCE((SELECT jsonb_agg(to_jsonb(f)) FROM refunds f JOIN returns r ON r.id=f.return_id WHERE r.user_id=$1),'[]'::jsonb),'runs',COALESCE((SELECT jsonb_agg(to_jsonb(run)-'user_id') FROM runs run WHERE user_id=$1),'[]'::jsonb),'assignments',COALESCE((SELECT jsonb_agg(to_jsonb(a)) FROM run_assignments a JOIN runs r ON r.id=a.run_id WHERE r.user_id=$1),'[]'::jsonb),'activity',COALESCE((SELECT jsonb_agg(to_jsonb(a)-'user_id') FROM activity a WHERE user_id=$1),'[]'::jsonb),'items',COALESCE((SELECT jsonb_agg(to_jsonb(i)) FROM purchase_items i JOIN purchases p ON p.id=i.purchase_id WHERE p.user_id=$1),'[]'::jsonb),'returnItems',COALESCE((SELECT jsonb_agg(to_jsonb(i)) FROM return_items i JOIN returns r ON r.id=i.return_id WHERE r.user_id=$1),'[]'::jsonb),'feeEntries',COALESCE((SELECT jsonb_agg(to_jsonb(f)) FROM fee_entries f JOIN returns r ON r.id=f.return_id WHERE r.user_id=$1),'[]'::jsonb),'documents',COALESCE((SELECT jsonb_agg(to_jsonb(d)-'user_id') FROM documents d WHERE user_id=$1),'[]'::jsonb),'reminders',COALESCE((SELECT jsonb_agg(to_jsonb(m)-'user_id') FROM reminders m WHERE user_id=$1),'[]'::jsonb),'notifications',COALESCE((SELECT jsonb_agg(to_jsonb(n)-'user_id') FROM notifications n WHERE user_id=$1),'[]'::jsonb),'preferences',(SELECT jsonb_build_object('email',email,'timezone',timezone,'pushEnabled',push_enabled,'quietStart',quiet_start,'quietEnd',quiet_end) FROM users WHERE id=$1))").bind(uid).fetch_one(ctx.data_unchecked::<PgPool>()).await.map_err(db_error)?;
         Ok(r.to_string())
     }
     async fn purchases(
@@ -200,7 +200,7 @@ impl Query {
     }
     async fn returns(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<Return>> {
         let uid = user(ctx)?;
-        let rows=sqlx::query("SELECT r.*,p.item,p.merchant,p.currency,COALESCE((SELECT sum(amount)::bigint FROM refunds WHERE return_id=r.id),0) received FROM returns r JOIN purchases p ON p.id=r.purchase_id WHERE r.user_id=$1 ORDER BY r.created_at DESC LIMIT 100").bind(uid).fetch_all(ctx.data_unchecked::<PgPool>()).await.map_err(db_error)?;
+        let rows=sqlx::query("SELECT r.*,COALESCE((SELECT string_agg(i.name||CASE WHEN ri.quantity>1 THEN ' × '||ri.quantity::text ELSE '' END, ', ' ORDER BY i.name) FROM return_items ri JOIN purchase_items i ON i.id=ri.item_id WHERE ri.return_id=r.id),p.item) item,p.merchant,p.currency,COALESCE((SELECT sum(amount)::bigint FROM refunds WHERE return_id=r.id),0) received FROM returns r JOIN purchases p ON p.id=r.purchase_id WHERE r.user_id=$1 ORDER BY r.created_at DESC LIMIT 100").bind(uid).fetch_all(ctx.data_unchecked::<PgPool>()).await.map_err(db_error)?;
         Ok(rows
             .into_iter()
             .map(|r| {
@@ -265,7 +265,7 @@ impl Query {
             method as usize,
         ))
         .unwrap();
-        Ok(sqlx::query("SELECT r.id,p.item,(r.features <-> $1::vector)::float8 distance FROM returns r JOIN purchases p ON p.id=r.purchase_id WHERE r.user_id=$2 AND p.currency=$3 AND r.state='resolved' AND r.features IS NOT NULL ORDER BY r.features <-> $1::vector,r.id LIMIT 5").bind(v).bind(uid).bind(p.get::<String,_>("currency")).fetch_all(pool).await.map_err(db_error)?.into_iter().map(|r|Similar{return_id:r.get::<Uuid,_>("id").to_string(),item:r.get("item"),distance:r.get("distance"),explanation:"Same currency; structured price, category and return-method distance. Historical examples, not predictions.".into()}).collect())
+        Ok(sqlx::query("SELECT r.id,COALESCE((SELECT string_agg(i.name||CASE WHEN ri.quantity>1 THEN ' × '||ri.quantity::text ELSE '' END, ', ' ORDER BY i.name) FROM return_items ri JOIN purchase_items i ON i.id=ri.item_id WHERE ri.return_id=r.id),p.item) item,(r.features <-> $1::vector)::float8 distance FROM returns r JOIN purchases p ON p.id=r.purchase_id WHERE r.user_id=$2 AND p.currency=$3 AND r.state='resolved' AND r.features IS NOT NULL ORDER BY r.features <-> $1::vector,r.id LIMIT 5").bind(v).bind(uid).bind(p.get::<String,_>("currency")).fetch_all(pool).await.map_err(db_error)?.into_iter().map(|r|Similar{return_id:r.get::<Uuid,_>("id").to_string(),item:r.get("item"),distance:r.get("distance"),explanation:"Same currency; structured price, category and return-method distance. Historical examples, not predictions.".into()}).collect())
     }
 }
 async fn event(
@@ -530,6 +530,13 @@ impl Mutation {
         sqlx::query("UPDATE returns SET fees=fees+$1 WHERE id=$2")
             .bind(amount)
             .bind(rid)
+            .execute(&mut *tx)
+            .await
+            .map_err(db_error)?;
+        sqlx::query("INSERT INTO fee_entries(id,return_id,amount) VALUES($1,$2,$3)")
+            .bind(Uuid::new_v4())
+            .bind(rid)
+            .bind(amount)
             .execute(&mut *tx)
             .await
             .map_err(db_error)?;
@@ -991,6 +998,12 @@ impl Mutation {
         let next: ReturnState =
             serde_json::from_value(serde_json::json!(&next_state)).map_err(|_| invalid())?;
         state.advance(next).map_err(|e| Error::new(e.to_string()))?;
+        if next == ReturnState::Cancelled
+            && (r.get::<i64, _>("received") > 0 || r.get::<i64, _>("fees") > 0)
+        {
+            return Err(Error::new("CANNOT_CANCEL_AFTER_FINANCIAL_ACTIVITY"));
+        }
+
         let label = label.unwrap_or(r.get("label"));
         let carrier = carrier.unwrap_or(r.get("carrier"));
         if label.len() > 2000 || carrier.len() > 160 {

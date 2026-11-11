@@ -23,7 +23,7 @@ pub async fn schedule(pool: &PgPool) -> Result<(), E> {
         let run: Option<Uuid> = r.get("run_id");
         let kind: String = r.get("kind");
         let version: Option<i32> = r.get("purchase_version");
-        let valid=sqlx::query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM purchases WHERE id=$1 AND user_id=$4 AND NOT archived AND version=$5 AND NOT EXISTS(SELECT 1 FROM returns WHERE purchase_id=$1 AND state!='cancelled')) OR EXISTS(SELECT 1 FROM returns WHERE id=$2 AND user_id=$4 AND state NOT IN ('resolved','cancelled') AND ($6!='shipping' OR state IN ('requested','packed'))) OR EXISTS(SELECT 1 FROM runs WHERE id=$3 AND user_id=$4 AND (NOT EXISTS(SELECT 1 FROM run_assignments WHERE run_id=$3) OR EXISTS(SELECT 1 FROM run_assignments WHERE run_id=$3 AND handed_over_at IS NULL)))").bind(p).bind(ret).bind(run).bind(uid).bind(version).bind(&kind).fetch_one(&mut *tx).await?;
+        let valid=sqlx::query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM purchases WHERE id=$1 AND user_id=$4 AND NOT archived AND version=$5 AND NOT EXISTS(SELECT 1 FROM returns WHERE purchase_id=$1 AND state!='cancelled')) OR EXISTS(SELECT 1 FROM returns WHERE id=$2 AND user_id=$4 AND state NOT IN ('resolved','cancelled') AND ($6!='shipping' OR state IN ('requested','packed')) AND ($6!='refund' OR expected-fees-COALESCE((SELECT sum(amount)::bigint FROM refunds WHERE return_id=returns.id),0)>0)) OR EXISTS(SELECT 1 FROM runs WHERE id=$3 AND user_id=$4 AND (NOT EXISTS(SELECT 1 FROM run_assignments WHERE run_id=$3) OR EXISTS(SELECT 1 FROM run_assignments WHERE run_id=$3 AND handed_over_at IS NULL)))").bind(p).bind(ret).bind(run).bind(uid).bind(version).bind(&kind).fetch_one(&mut *tx).await?;
         if !valid {
             sqlx::query("UPDATE reminders SET state='cancelled' WHERE id=$1")
                 .bind(mid)
@@ -69,11 +69,11 @@ pub async fn schedule(pool: &PgPool) -> Result<(), E> {
 }
 pub async fn push(pool: &PgPool) -> Result<(), E> {
     let mut tx = pool.begin().await?;
-    let row=sqlx::query("SELECT a.*,n.title,n.body,n.deep_link,u.push_enabled,u.timezone,u.quiet_start,u.quiet_end,m.return_id,m.purchase_id,m.purchase_version FROM push_attempts a JOIN notifications n ON n.id=a.notification_id JOIN reminders m ON m.id=n.reminder_id JOIN users u ON u.id=n.user_id WHERE a.status='pending' AND a.next_attempt_at<=now() AND a.attempts<8 ORDER BY a.next_attempt_at FOR UPDATE OF a SKIP LOCKED LIMIT 1").fetch_optional(&mut *tx).await?;
+    let row=sqlx::query("SELECT a.*,n.title,n.body,n.deep_link,u.push_enabled,u.timezone,u.quiet_start,u.quiet_end,m.return_id,m.purchase_id,m.purchase_version,m.kind FROM push_attempts a JOIN notifications n ON n.id=a.notification_id JOIN reminders m ON m.id=n.reminder_id JOIN users u ON u.id=n.user_id WHERE a.status='pending' AND a.next_attempt_at<=now() AND a.attempts<8 ORDER BY a.next_attempt_at FOR UPDATE OF a SKIP LOCKED LIMIT 1").fetch_optional(&mut *tx).await?;
     if let Some(r) = row {
         let nid: Uuid = r.get("notification_id");
         let token: String = r.get("token");
-        let active=sqlx::query_scalar::<_,bool>("SELECT NOT EXISTS(SELECT 1 FROM returns WHERE id=$1 AND state IN ('cancelled','resolved')) AND NOT EXISTS(SELECT 1 FROM purchases WHERE id=$2 AND (archived OR version!=$3))").bind(r.get::<Option<Uuid>,_>("return_id")).bind(r.get::<Option<Uuid>,_>("purchase_id")).bind(r.get::<Option<i32>,_>("purchase_version")).fetch_one(&mut *tx).await?;
+        let active=sqlx::query_scalar::<_,bool>("SELECT NOT EXISTS(SELECT 1 FROM returns WHERE id=$1 AND (state IN ('cancelled','resolved') OR ($4='shipping' AND state NOT IN ('requested','packed')) OR ($4='refund' AND expected-fees-COALESCE((SELECT sum(amount)::bigint FROM refunds WHERE return_id=returns.id),0)<=0))) AND NOT EXISTS(SELECT 1 FROM purchases WHERE id=$2 AND (archived OR version!=$3))").bind(r.get::<Option<Uuid>,_>("return_id")).bind(r.get::<Option<Uuid>,_>("purchase_id")).bind(r.get::<Option<i32>,_>("purchase_version")).bind(r.get::<String,_>("kind")).fetch_one(&mut *tx).await?;
         let tz = r.get::<String, _>("timezone").parse::<chrono_tz::Tz>()?;
         if !r.get::<bool, _>("push_enabled") || !active {
             sqlx::query(

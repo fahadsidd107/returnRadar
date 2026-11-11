@@ -26,24 +26,43 @@ export type Auth = {
   token: Scalars['String']['output'];
 };
 
+export type Document = {
+  __typename?: 'Document';
+  byteLength: Scalars['String']['output'];
+  contentType: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  purpose: Scalars['String']['output'];
+  status: Scalars['String']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   advanceReturn: Scalars['Boolean']['output'];
   archivePurchase: Scalars['Boolean']['output'];
   assignParcelToRun: Scalars['Boolean']['output'];
+  beginDocumentUpload: Upload;
   completeRunStop: Scalars['Boolean']['output'];
+  createOrder: Scalars['String']['output'];
   createPurchase: Scalars['String']['output'];
   createReturnRun: Scalars['String']['output'];
   deleteAccount: Scalars['Boolean']['output'];
+  deleteDocument: Scalars['Boolean']['output'];
   deletePurchase: Scalars['Boolean']['output'];
+  finishDocumentUpload: Scalars['Boolean']['output'];
   logout: Scalars['Boolean']['output'];
+  markNotificationRead: Scalars['Boolean']['output'];
+  recordFee: Scalars['Boolean']['output'];
   recordRefund: Scalars['Boolean']['output'];
   refreshSession: Auth;
   register: Scalars['Boolean']['output'];
+  registerDeviceToken: Scalars['Boolean']['output'];
   requestPasswordReset: Scalars['Boolean']['output'];
   resetPassword: Scalars['Boolean']['output'];
+  scheduleReminder: Scalars['String']['output'];
   signIn: Auth;
+  startPartialReturn: Scalars['String']['output'];
   startReturn: Scalars['String']['output'];
+  updateNotificationPreferences: Scalars['Boolean']['output'];
   updatePurchase: Scalars['Boolean']['output'];
   verifyEmail: Scalars['Boolean']['output'];
 };
@@ -71,10 +90,28 @@ export type MutationAssignParcelToRunArgs = {
 };
 
 
+export type MutationBeginDocumentUploadArgs = {
+  byteLength: Scalars['String']['input'];
+  contentType: Scalars['String']['input'];
+  purchaseId?: InputMaybe<Scalars['String']['input']>;
+  purpose: Scalars['String']['input'];
+  returnId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationCompleteRunStopArgs = {
   evidenceNote: Scalars['String']['input'];
   returnId: Scalars['String']['input'];
   runId: Scalars['String']['input'];
+};
+
+
+export type MutationCreateOrderArgs = {
+  currency: Scalars['String']['input'];
+  deadline: Scalars['String']['input'];
+  items: Array<OrderItemInput>;
+  merchant: Scalars['String']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -94,9 +131,30 @@ export type MutationCreateReturnRunArgs = {
 };
 
 
+export type MutationDeleteDocumentArgs = {
+  documentId: Scalars['String']['input'];
+};
+
+
 export type MutationDeletePurchaseArgs = {
   purchaseId: Scalars['String']['input'];
   version: Scalars['Int']['input'];
+};
+
+
+export type MutationFinishDocumentUploadArgs = {
+  documentId: Scalars['String']['input'];
+};
+
+
+export type MutationMarkNotificationReadArgs = {
+  notificationId: Scalars['String']['input'];
+};
+
+
+export type MutationRecordFeeArgs = {
+  amountMinor: Scalars['String']['input'];
+  returnId: Scalars['String']['input'];
 };
 
 
@@ -117,6 +175,11 @@ export type MutationRegisterArgs = {
 };
 
 
+export type MutationRegisterDeviceTokenArgs = {
+  token: Scalars['String']['input'];
+};
+
+
 export type MutationRequestPasswordResetArgs = {
   email: Scalars['String']['input'];
 };
@@ -128,9 +191,26 @@ export type MutationResetPasswordArgs = {
 };
 
 
+export type MutationScheduleReminderArgs = {
+  dueAt: Scalars['String']['input'];
+  kind: Scalars['String']['input'];
+  purchaseId?: InputMaybe<Scalars['String']['input']>;
+  returnId?: InputMaybe<Scalars['String']['input']>;
+  runId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationSignInArgs = {
   email: Scalars['String']['input'];
   password: Scalars['String']['input'];
+};
+
+
+export type MutationStartPartialReturnArgs = {
+  category: Scalars['Int']['input'];
+  items: Array<ReturnItemInput>;
+  method: Scalars['Int']['input'];
+  purchaseId: Scalars['String']['input'];
 };
 
 
@@ -138,6 +218,14 @@ export type MutationStartReturnArgs = {
   category: Scalars['Int']['input'];
   method: Scalars['Int']['input'];
   purchaseId: Scalars['String']['input'];
+};
+
+
+export type MutationUpdateNotificationPreferencesArgs = {
+  pushEnabled: Scalars['Boolean']['input'];
+  quietEnd: Scalars['Int']['input'];
+  quietStart: Scalars['Int']['input'];
+  timezone: Scalars['String']['input'];
 };
 
 
@@ -155,6 +243,39 @@ export type MutationVerifyEmailArgs = {
   token: Scalars['String']['input'];
 };
 
+export type Notification = {
+  __typename?: 'Notification';
+  body: Scalars['String']['output'];
+  createdAt: Scalars['String']['output'];
+  deepLink: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  read: Scalars['Boolean']['output'];
+  title: Scalars['String']['output'];
+};
+
+export type OrderItem = {
+  __typename?: 'OrderItem';
+  id: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  quantity: Scalars['Int']['output'];
+  returnedQuantity: Scalars['Int']['output'];
+  unitAmountMinor: Scalars['String']['output'];
+};
+
+export type OrderItemInput = {
+  name: Scalars['String']['input'];
+  quantity: Scalars['Int']['input'];
+  unitAmountMinor: Scalars['String']['input'];
+};
+
+export type Preferences = {
+  __typename?: 'Preferences';
+  pushEnabled: Scalars['Boolean']['output'];
+  quietEnd: Scalars['Int']['output'];
+  quietStart: Scalars['Int']['output'];
+  timezone: Scalars['String']['output'];
+};
+
 export type Purchase = {
   __typename?: 'Purchase';
   amountMinor: Scalars['String']['output'];
@@ -169,13 +290,34 @@ export type Purchase = {
 
 export type Query = {
   __typename?: 'Query';
+  documentDownloadUrl: Scalars['String']['output'];
+  documents: Array<Document>;
   exportData: Scalars['String']['output'];
+  notificationPreferences: Preferences;
+  notifications: Array<Notification>;
+  purchaseItems: Array<OrderItem>;
   purchases: Array<Purchase>;
   returns: Array<Return>;
   runParcels: Array<RunParcel>;
   runs: Array<Run>;
   similarPastReturns: Array<Similar>;
   timeline: Array<Activity>;
+};
+
+
+export type QueryDocumentDownloadUrlArgs = {
+  documentId: Scalars['String']['input'];
+};
+
+
+export type QueryDocumentsArgs = {
+  purchaseId?: InputMaybe<Scalars['String']['input']>;
+  returnId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryPurchaseItemsArgs = {
+  purchaseId: Scalars['String']['input'];
 };
 
 
@@ -216,6 +358,11 @@ export type Return = {
   state: Scalars['String']['output'];
 };
 
+export type ReturnItemInput = {
+  itemId: Scalars['String']['input'];
+  quantity: Scalars['Int']['input'];
+};
+
 export type Run = {
   __typename?: 'Run';
   id: Scalars['String']['output'];
@@ -242,6 +389,14 @@ export type Similar = {
   explanation: Scalars['String']['output'];
   item: Scalars['String']['output'];
   returnId: Scalars['String']['output'];
+};
+
+export type Upload = {
+  __typename?: 'Upload';
+  byteLength: Scalars['String']['output'];
+  contentType: Scalars['String']['output'];
+  documentId: Scalars['String']['output'];
+  url: Scalars['String']['output'];
 };
 
 export type DashboardQueryVariables = Exact<{ [key: string]: never; }>;

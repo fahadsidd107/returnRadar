@@ -75,9 +75,11 @@ class ApiTests(unittest.TestCase):
         gql('mutation($r:String!){recordFee(returnId:$r,amountMinor:"250")}',{'r':rid},self.a['token'])
         gql('mutation($r:String!){recordRefund(returnId:$r,amountMinor:"2250")}',{'r':rid},self.a['token'])
         self.assertEqual(gql('{returns{remainingMinor}}',token=self.a['token'])['returns'][0]['remainingMinor'],'0')
-        self.advance(rid,'cancelled')
-        # Cancellation releases selected quantities, without allowing an active duplicate allocation.
-        self.assertTrue(gql(operation,{'p':pid,'i':iid,'q':3},self.a['token'])['startPartialReturn'])
+        self.assertTrue(gql('mutation($r:String!){advanceReturn(returnId:$r,nextState:"cancelled")}',{'r':rid},self.a['token'],errors=True))
+        # A separate unfunded return can be cancelled and releases only its own quantity.
+        rid2=gql(operation,{'p':pid,'i':iid,'q':1},self.a['token'])['startPartialReturn']
+        self.advance(rid2,'cancelled')
+        self.assertTrue(gql(operation,{'p':pid,'i':iid,'q':1},self.a['token'])['startPartialReturn'])
     def test_private_document_upload_validation(self):
         pid=self.purchase();content=b'%PDF-1.7\nLocal integration fixture\n%%EOF'
         op='mutation($p:String!,$n:String!){beginDocumentUpload(purchaseId:$p,purpose:"receipt",contentType:"application/pdf",byteLength:$n){documentId url}}'
